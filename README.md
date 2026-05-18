@@ -1,13 +1,20 @@
 # Wardrobe Stylist
 
-A local-first wardrobe catalog and outfit recommendation prototype.
+A local-first wardrobe catalog, look builder, and outfit recommendation prototype.
 
 ## What it does
 
-- Stores a user's profile, measurements, and profile photo in browser storage.
-- Maintains a clothing catalog for tops, shirts, t-shirts, jackets, skirts, long skirts, skorts, jeans, one pieces, innerwear, headbands, clips, clutches, and purses.
-- Recommends an outfit from owned items based on occasion and weather.
-- Shows a generated outfit preview with a 360-degree rotation control.
+- Starts with a registration page for name, gender, measurements, units, decimals, and front/back/left/right photos.
+- Opens to a dashboard with catalog stats, product guidance, and primary actions.
+- Adds apparel through a modal with type, size, brand, unknown-brand option, optional price, color, style tag, and apparel photo.
+- Builds a persistent catalog for dresses, hats, shoes, innerwear, jewelry, watches, purses, shirts, skorts, slit dresses, and more.
+- Recommends a getup from the catalog based on occasion, weather, and notes.
+- Lets the user manually create a look, preview it, rotate the view, and save it.
+- Uses the registered four-angle photos as the background reference for the closest 360 preview angle.
+
+## Storage
+
+This prototype uses browser `localStorage` as the database so the catalog and saved looks appear on the next visit from the same browser. For production, the next upgrade should be IndexedDB for larger image storage or a cloud database such as Firebase/Supabase for account sync.
 
 ## Run
 
@@ -21,9 +28,9 @@ Then visit `http://localhost:4173`.
 
 ## Notes
 
-The current prototype uses an illustrated local preview rather than a real image-generation backend. A production version can add:
+The current prototype uses a free local rules-based recommender and an illustrated try-on overlay. A production version can add:
 
 - Login and cloud sync.
 - Real garment photo uploads and segmentation.
-- AI-generated user try-on images.
+- AI-generated user try-on images through a paid or self-hosted model.
 - A true 3D avatar pipeline for full 360-degree try-on.

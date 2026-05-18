@@ -7,149 +7,302 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="app-shell">
-      <section class="workspace">
-        <aside class="panel profile-panel" aria-label="Profile and measurements">
-          <div class="brand-row">
+    <main id="app" class="app-shell">
+      <section id="registrationView" class="registration-view">
+        <div class="register-copy">
+          <p class="eyebrow">Wardrobe Stylist</p>
+          <h1>Build a private digital wardrobe and style it in 360.</h1>
+          <p>
+            Register once with measurements and four reference photos. Then add
+            apparel, create looks, get occasion recommendations, and save outfits
+            for your next visit.
+          </p>
+        </div>
+
+        <form id="registrationForm" class="register-card">
+          <div class="form-header">
             <div>
-              <p class="eyebrow">Wardrobe Stylist</p>
-              <h1>Outfit planner</h1>
+              <p class="eyebrow">Registration</p>
+              <h2>Body profile</h2>
             </div>
-            <button class="icon-button" id="resetApp" type="button" title="Reset demo data" aria-label="Reset demo data">↻</button>
+            <button id="loadDemo" class="ghost-button" type="button">Load demo</button>
           </div>
 
-          <form id="profileForm" class="stacked-form">
+          <div class="form-grid two">
             <label>
               Name
-              <input id="profileName" name="profileName" type="text" placeholder="Maya" autocomplete="name" />
+              <input id="regName" type="text" placeholder="Maya" required autocomplete="name" />
             </label>
             <label>
-              Photo
-              <input id="profilePhoto" name="profilePhoto" type="file" accept="image/*" />
+              Gender
+              <select id="regGender" required>
+                <option value="">Select</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="nonbinary">Non-binary</option>
+                <option value="prefer-not">Prefer not to say</option>
+              </select>
             </label>
-            <div class="measurement-grid">
-              <label>
-                Height
-                <input id="height" name="height" type="number" min="80" max="230" placeholder="168" />
-              </label>
-              <label>
-                Bust
-                <input id="bust" name="bust" type="number" min="20" max="180" placeholder="86" />
-              </label>
-              <label>
-                Waist
-                <input id="waist" name="waist" type="number" min="20" max="180" placeholder="68" />
-              </label>
-              <label>
-                Hips
-                <input id="hips" name="hips" type="number" min="20" max="180" placeholder="94" />
-              </label>
-            </div>
-            <button class="primary-button" type="submit">Save profile</button>
-          </form>
-
-          <div class="profile-card">
-            <div id="photoPreview" class="photo-preview" aria-label="Profile photo preview"></div>
-            <div>
-              <strong id="profileSummaryName">Guest</strong>
-              <p id="profileSummaryMeasurements">Measurements pending</p>
-            </div>
-          </div>
-        </aside>
-
-        <section class="panel catalog-panel" aria-label="Clothing catalog">
-          <div class="section-title">
-            <div>
-              <p class="eyebrow">Catalog</p>
-              <h2>Owned clothes</h2>
-            </div>
-            <span id="itemCount" class="counter">0</span>
           </div>
 
-          <form id="itemForm" class="item-form">
-            <input id="itemName" type="text" placeholder="Black satin skirt" required />
-            <select id="itemCategory" required aria-label="Category">
-              <option value="tops">Top</option>
-              <option value="shirts">Shirt</option>
-              <option value="tshirts">T-shirt</option>
-              <option value="jackets">Jacket</option>
-              <option value="skirts">Skirt</option>
-              <option value="longSkirts">Long skirt</option>
-              <option value="skorts">Skort</option>
-              <option value="jeans">Jeans</option>
-              <option value="onePieces">One piece</option>
-              <option value="innerwear">Innerwear</option>
-              <option value="headbands">Headband</option>
-              <option value="clips">Clips</option>
-              <option value="clutches">Clutch</option>
-              <option value="purses">Purse</option>
-            </select>
-            <input id="itemColor" type="color" value="#6f8f72" aria-label="Color" />
-            <select id="itemVibe" aria-label="Style">
+          <div class="measurement-block">
+            <div class="block-title">
+              <strong>Measurements</strong>
+              <span>Use centimeters, inches, feet, meters, kilograms, pounds, or decimals.</span>
+            </div>
+            <div class="measurements" id="measurementInputs"></div>
+          </div>
+
+          <div class="photo-block">
+            <div class="block-title">
+              <strong>360 reference photos</strong>
+              <span>Front, back, left, and right views help the preview choose the closest angle.</span>
+            </div>
+            <div class="photo-grid">
+              <label>
+                Front
+                <input id="photoFront" type="file" accept="image/*" />
+              </label>
+              <label>
+                Back
+                <input id="photoBack" type="file" accept="image/*" />
+              </label>
+              <label>
+                Left
+                <input id="photoLeft" type="file" accept="image/*" />
+              </label>
+              <label>
+                Right
+                <input id="photoRight" type="file" accept="image/*" />
+              </label>
+            </div>
+          </div>
+
+          <button class="primary-button full" type="submit">Create wardrobe</button>
+        </form>
+      </section>
+
+      <section id="dashboardView" class="dashboard-view hidden">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Wardrobe Stylist</p>
+            <h1 id="welcomeTitle">Your wardrobe</h1>
+          </div>
+          <div class="topbar-actions">
+            <button id="editProfileButton" class="ghost-button" type="button">Profile</button>
+            <button id="resetApp" class="icon-button" type="button" title="Reset app" aria-label="Reset app">R</button>
+          </div>
+        </header>
+
+        <section class="hero-band">
+          <div>
+            <h2>Plan with what you own.</h2>
+            <p>
+              Your catalog is stored in this browser, so the next visit keeps your
+              apparel, photos, recommendations, and saved looks.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <button id="openAddApparel" class="primary-button" type="button">Add apparel</button>
+            <button id="openDecideWear" class="secondary-button" type="button">Decide what to wear</button>
+            <button id="openCreateLook" class="secondary-button" type="button">Create own look</button>
+          </div>
+        </section>
+
+        <section class="stats-grid">
+          <article>
+            <span id="catalogCount">0</span>
+            <p>Catalog items</p>
+          </article>
+          <article>
+            <span id="savedLookCount">0</span>
+            <p>Saved looks</p>
+          </article>
+          <article>
+            <span id="profileCompleteness">0%</span>
+            <p>Profile ready</p>
+          </article>
+        </section>
+
+        <section class="main-grid">
+          <article class="panel preview-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Interactive preview</p>
+                <h2 id="previewTitle">Current look</h2>
+              </div>
+              <span id="angleLabel" class="pill">Front</span>
+            </div>
+
+            <div class="preview-stage">
+              <div id="photoLayer" class="photo-layer"></div>
+              <div id="avatar" class="avatar">
+                <div id="hatWear" class="hat-wear"></div>
+                <div id="headWear" class="head-wear"></div>
+                <div id="jewelryWear" class="jewelry-wear"></div>
+                <div id="upperWear" class="upper-wear"></div>
+                <div id="jacketWear" class="jacket-wear"></div>
+                <div id="dressWear" class="dress-wear"></div>
+                <div id="bottomWear" class="bottom-wear"></div>
+                <div id="watchWear" class="watch-wear"></div>
+                <div id="bagWear" class="bag-wear"></div>
+                <div id="shoeWear" class="shoe-wear"></div>
+              </div>
+            </div>
+            <div class="rotation-row">
+              <input id="rotateSlider" type="range" min="0" max="360" value="0" />
+              <button id="saveLookButton" class="secondary-button" type="button">Save look</button>
+            </div>
+            <div id="currentLookList" class="look-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Catalog</p>
+                <h2>Owned apparel</h2>
+              </div>
+              <button id="openAddApparelSmall" class="ghost-button" type="button">Add</button>
+            </div>
+            <div id="catalogList" class="catalog-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Saved</p>
+                <h2>Looks</h2>
+              </div>
+            </div>
+            <div id="savedLooksList" class="saved-list"></div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="apparelDialog" class="dialog">
+      <form id="apparelForm" class="dialog-card">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Catalog item</p>
+            <h2>Add apparel</h2>
+          </div>
+          <button class="icon-button light" value="cancel" type="button" data-close-dialog>X</button>
+        </div>
+        <div class="form-grid two">
+          <label>
+            Item name
+            <input id="itemName" type="text" placeholder="Black slit dress" required />
+          </label>
+          <label>
+            Type
+            <select id="itemType" required></select>
+          </label>
+          <label>
+            Size
+            <input id="itemSize" type="text" placeholder="M, 34, 32 waist, 7 UK" />
+          </label>
+          <label>
+            Color
+            <input id="itemColor" type="color" value="#6f8f72" />
+          </label>
+          <label>
+            Brand
+            <input id="itemBrand" type="text" placeholder="Zara, Nike, local boutique" />
+          </label>
+          <label class="checkbox-label">
+            <input id="unknownBrand" type="checkbox" />
+            I do not know the brand
+          </label>
+          <label>
+            Price
+            <input id="itemPrice" type="number" min="0" step="0.01" placeholder="Optional" />
+          </label>
+          <label>
+            Style tags
+            <select id="itemVibe">
               <option value="casual">Casual</option>
               <option value="office">Office</option>
               <option value="party">Party</option>
               <option value="formal">Formal</option>
               <option value="travel">Travel</option>
-              <option value="ethnic">Ethnic</option>
+              <option value="festive">Festive</option>
+              <option value="sport">Sport</option>
             </select>
-            <button class="primary-button" type="submit">Add</button>
-          </form>
+          </label>
+          <label class="wide">
+            Apparel photo
+            <input id="itemPhoto" type="file" accept="image/*" />
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button class="ghost-button" type="button" data-close-dialog>Cancel</button>
+          <button class="primary-button" type="submit">Add to catalog</button>
+        </div>
+      </form>
+    </dialog>
 
-          <div id="catalogList" class="catalog-list"></div>
-        </section>
-
-        <section class="panel stylist-panel" aria-label="Styling recommendation">
-          <div class="section-title">
-            <div>
-              <p class="eyebrow">Stylist</p>
-              <h2>Occasion fit</h2>
-            </div>
-            <button id="recommendButton" class="primary-button" type="button">Recommend</button>
+    <dialog id="wearDialog" class="dialog">
+      <form id="wearForm" class="dialog-card">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Recommendation</p>
+            <h2>Decide what to wear</h2>
           </div>
+          <button class="icon-button light" type="button" data-close-dialog>X</button>
+        </div>
+        <div class="form-grid two">
+          <label>
+            Occasion
+            <select id="occasion">
+              <option value="casual">Casual day</option>
+              <option value="office">Office</option>
+              <option value="party">Party</option>
+              <option value="formal">Formal event</option>
+              <option value="date">Date</option>
+              <option value="travel">Travel</option>
+              <option value="festive">Festive</option>
+              <option value="gym">Gym or sport</option>
+            </select>
+          </label>
+          <label>
+            Weather
+            <select id="weather">
+              <option value="mild">Mild</option>
+              <option value="hot">Hot</option>
+              <option value="cool">Cool</option>
+              <option value="rain">Rain</option>
+            </select>
+          </label>
+          <label class="wide">
+            Notes
+            <input id="occasionNotes" type="text" placeholder="Comfortable shoes, modest, bright colors..." />
+          </label>
+        </div>
+        <div id="recommendationText" class="recommendation-text"></div>
+        <div class="dialog-actions">
+          <button class="ghost-button" type="button" data-close-dialog>Cancel</button>
+          <button class="primary-button" type="submit">Recommend look</button>
+        </div>
+      </form>
+    </dialog>
 
-          <div class="occasion-grid">
-            <label>
-              Occasion
-              <select id="occasion">
-                <option value="casual">Casual day</option>
-                <option value="office">Office</option>
-                <option value="party">Party</option>
-                <option value="formal">Formal event</option>
-                <option value="travel">Travel</option>
-                <option value="ethnic">Festive</option>
-              </select>
-            </label>
-            <label>
-              Weather
-              <select id="weather">
-                <option value="mild">Mild</option>
-                <option value="hot">Hot</option>
-                <option value="cool">Cool</option>
-                <option value="rain">Rain</option>
-              </select>
-            </label>
+    <dialog id="lookDialog" class="dialog">
+      <form id="lookForm" class="dialog-card large">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Look builder</p>
+            <h2>Create your own look</h2>
           </div>
-
-          <div class="stage-wrap">
-            <div class="avatar-stage" aria-label="360 outfit preview">
-              <div id="avatar" class="avatar">
-                <div class="head"></div>
-                <div id="hairBand" class="hair-band"></div>
-                <div id="torsoWear" class="torso-wear"></div>
-                <div id="jacketWear" class="jacket-wear"></div>
-                <div id="bottomWear" class="bottom-wear"></div>
-                <div id="bagWear" class="bag-wear"></div>
-                <div class="legs"></div>
-              </div>
-            </div>
-            <input id="rotateSlider" type="range" min="0" max="360" value="18" aria-label="Rotate preview" />
-          </div>
-
-          <div id="recommendation" class="recommendation"></div>
-        </section>
-      </section>
-    </main>
+          <button class="icon-button light" type="button" data-close-dialog>X</button>
+        </div>
+        <div id="lookPicker" class="look-picker"></div>
+        <div class="dialog-actions">
+          <button class="ghost-button" type="button" data-close-dialog>Cancel</button>
+          <button class="primary-button" type="submit">Use selected look</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="app.js"></script>
   </body>
