@@ -1,4 +1,4 @@
-# Wardrobe Stylist
+# WardrobeLens
 
 A local-first wardrobe catalog, look builder, and outfit recommendation prototype.
 

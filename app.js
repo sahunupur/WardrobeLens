@@ -1,4 +1,4 @@
-const STORAGE_KEY = "wardrobe-stylist-v2";
+const STORAGE_KEY = "wardrobelens-v1";
 
 const measurementDefs = [
   { key: "height", label: "Height", units: ["cm", "in", "ft", "m"] },

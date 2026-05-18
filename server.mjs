@@ -36,5 +36,5 @@ createServer((request, response) => {
   });
   createReadStream(filePath).pipe(response);
 }).listen(port, () => {
-  console.log(`Wardrobe Stylist running at http://127.0.0.1:${port}`);
+  console.log(`WardrobeLens running at http://127.0.0.1:${port}`);
 });
