@@ -98,8 +98,8 @@
           <div>
             <h2>Plan with what you own.</h2>
             <p>
-              Your catalog is stored in this browser, so the next visit keeps your
-              apparel, photos, recommendations, and saved looks.
+              Upload yourself, upload apparel, and generate a realistic local
+              try-on preview before you save the look.
             </p>
           </div>
           <div class="hero-actions">
@@ -128,13 +128,18 @@
           <article class="panel preview-panel">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Interactive preview</p>
+                <p class="eyebrow">AI-style try-on</p>
                 <h2 id="previewTitle">Current look</h2>
               </div>
               <span id="angleLabel" class="pill">Front</span>
             </div>
 
             <div class="preview-stage">
+              <canvas id="tryOnCanvas" class="tryon-canvas" width="900" height="1200"></canvas>
+              <div id="tryOnEmpty" class="tryon-empty">
+                <strong>Upload photos to create a realistic try-on</strong>
+                <span>Use your front/back/side photos and apparel images for the best result.</span>
+              </div>
               <div id="photoLayer" class="photo-layer"></div>
               <div id="avatar" class="avatar">
                 <div id="hatWear" class="hat-wear"></div>
@@ -151,8 +156,10 @@
             </div>
             <div class="rotation-row">
               <input id="rotateSlider" type="range" min="0" max="360" value="0" />
+              <button id="generateTryOnButton" class="primary-button" type="button">Generate try-on</button>
               <button id="saveLookButton" class="secondary-button" type="button">Save look</button>
             </div>
+            <div id="tryOnStatus" class="tryon-status">Local preview engine ready.</div>
             <div id="currentLookList" class="look-list"></div>
           </article>
 

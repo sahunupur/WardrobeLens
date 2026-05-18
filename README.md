@@ -11,6 +11,7 @@ A local-first wardrobe catalog, look builder, and outfit recommendation prototyp
 - Recommends a getup from the catalog based on occasion, weather, and notes.
 - Lets the user manually create a look, preview it, rotate the view, and save it.
 - Uses the registered four-angle photos as the background reference for the closest 360 preview angle.
+- Generates a more realistic local try-on canvas by blending the user photo, apparel photos, garment masks, shadows, and fabric highlights.
 
 ## Storage
 
@@ -28,7 +29,7 @@ Then visit `http://localhost:4173`.
 
 ## Notes
 
-The current prototype uses a free local rules-based recommender and an illustrated try-on overlay. A production version can add:
+The current prototype uses a free local rules-based recommender and a browser canvas try-on renderer. It does not call a paid image model. A production version can add:
 
 - Login and cloud sync.
 - Real garment photo uploads and segmentation.
