@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wardrobe Stylist</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <aside class="panel profile-panel" aria-label="Profile and measurements">
+          <div class="brand-row">
+            <div>
+              <p class="eyebrow">Wardrobe Stylist</p>
+              <h1>Outfit planner</h1>
+            </div>
+            <button class="icon-button" id="resetApp" type="button" title="Reset demo data" aria-label="Reset demo data">↻</button>
+          </div>
+
+          <form id="profileForm" class="stacked-form">
+            <label>
+              Name
+              <input id="profileName" name="profileName" type="text" placeholder="Maya" autocomplete="name" />
+            </label>
+            <label>
+              Photo
+              <input id="profilePhoto" name="profilePhoto" type="file" accept="image/*" />
+            </label>
+            <div class="measurement-grid">
+              <label>
+                Height
+                <input id="height" name="height" type="number" min="80" max="230" placeholder="168" />
+              </label>
+              <label>
+                Bust
+                <input id="bust" name="bust" type="number" min="20" max="180" placeholder="86" />
+              </label>
+              <label>
+                Waist
+                <input id="waist" name="waist" type="number" min="20" max="180" placeholder="68" />
+              </label>
+              <label>
+                Hips
+                <input id="hips" name="hips" type="number" min="20" max="180" placeholder="94" />
+              </label>
+            </div>
+            <button class="primary-button" type="submit">Save profile</button>
+          </form>
+
+          <div class="profile-card">
+            <div id="photoPreview" class="photo-preview" aria-label="Profile photo preview"></div>
+            <div>
+              <strong id="profileSummaryName">Guest</strong>
+              <p id="profileSummaryMeasurements">Measurements pending</p>
+            </div>
+          </div>
+        </aside>
+
+        <section class="panel catalog-panel" aria-label="Clothing catalog">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Catalog</p>
+              <h2>Owned clothes</h2>
+            </div>
+            <span id="itemCount" class="counter">0</span>
+          </div>
+
+          <form id="itemForm" class="item-form">
+            <input id="itemName" type="text" placeholder="Black satin skirt" required />
+            <select id="itemCategory" required aria-label="Category">
+              <option value="tops">Top</option>
+              <option value="shirts">Shirt</option>
+              <option value="tshirts">T-shirt</option>
+              <option value="jackets">Jacket</option>
+              <option value="skirts">Skirt</option>
+              <option value="longSkirts">Long skirt</option>
+              <option value="skorts">Skort</option>
+              <option value="jeans">Jeans</option>
+              <option value="onePieces">One piece</option>
+              <option value="innerwear">Innerwear</option>
+              <option value="headbands">Headband</option>
+              <option value="clips">Clips</option>
+              <option value="clutches">Clutch</option>
+              <option value="purses">Purse</option>
+            </select>
+            <input id="itemColor" type="color" value="#6f8f72" aria-label="Color" />
+            <select id="itemVibe" aria-label="Style">
+              <option value="casual">Casual</option>
+              <option value="office">Office</option>
+              <option value="party">Party</option>
+              <option value="formal">Formal</option>
+              <option value="travel">Travel</option>
+              <option value="ethnic">Ethnic</option>
+            </select>
+            <button class="primary-button" type="submit">Add</button>
+          </form>
+
+          <div id="catalogList" class="catalog-list"></div>
+        </section>
+
+        <section class="panel stylist-panel" aria-label="Styling recommendation">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Stylist</p>
+              <h2>Occasion fit</h2>
+            </div>
+            <button id="recommendButton" class="primary-button" type="button">Recommend</button>
+          </div>
+
+          <div class="occasion-grid">
+            <label>
+              Occasion
+              <select id="occasion">
+                <option value="casual">Casual day</option>
+                <option value="office">Office</option>
+                <option value="party">Party</option>
+                <option value="formal">Formal event</option>
+                <option value="travel">Travel</option>
+                <option value="ethnic">Festive</option>
+              </select>
+            </label>
+            <label>
+              Weather
+              <select id="weather">
+                <option value="mild">Mild</option>
+                <option value="hot">Hot</option>
+                <option value="cool">Cool</option>
+                <option value="rain">Rain</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="stage-wrap">
+            <div class="avatar-stage" aria-label="360 outfit preview">
+              <div id="avatar" class="avatar">
+                <div class="head"></div>
+                <div id="hairBand" class="hair-band"></div>
+                <div id="torsoWear" class="torso-wear"></div>
+                <div id="jacketWear" class="jacket-wear"></div>
+                <div id="bottomWear" class="bottom-wear"></div>
+                <div id="bagWear" class="bag-wear"></div>
+                <div class="legs"></div>
+              </div>
+            </div>
+            <input id="rotateSlider" type="range" min="0" max="360" value="18" aria-label="Rotate preview" />
+          </div>
+
+          <div id="recommendation" class="recommendation"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
