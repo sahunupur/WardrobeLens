@@ -90,11 +90,8 @@ const el = {
   currentLookList: document.querySelector("#currentLookList"),
   previewTitle: document.querySelector("#previewTitle"),
   aiTryOnImage: document.querySelector("#aiTryOnImage"),
-  tryOnCanvas: document.querySelector("#tryOnCanvas"),
   tryOnEmpty: document.querySelector("#tryOnEmpty"),
   tryOnStatus: document.querySelector("#tryOnStatus"),
-  photoLayer: document.querySelector("#photoLayer"),
-  avatar: document.querySelector("#avatar"),
   rotateSlider: document.querySelector("#rotateSlider"),
   generateTryOnButton: document.querySelector("#generateTryOnButton"),
   angleLabel: document.querySelector("#angleLabel"),
@@ -119,20 +116,9 @@ const el = {
   lookDialog: document.querySelector("#lookDialog"),
   lookForm: document.querySelector("#lookForm"),
   lookPicker: document.querySelector("#lookPicker"),
-  hatWear: document.querySelector("#hatWear"),
-  headWear: document.querySelector("#headWear"),
-  jewelryWear: document.querySelector("#jewelryWear"),
-  upperWear: document.querySelector("#upperWear"),
-  jacketWear: document.querySelector("#jacketWear"),
-  dressWear: document.querySelector("#dressWear"),
-  bottomWear: document.querySelector("#bottomWear"),
-  watchWear: document.querySelector("#watchWear"),
-  bagWear: document.querySelector("#bagWear"),
-  shoeWear: document.querySelector("#shoeWear"),
 };
 
 let state = loadState();
-let renderToken = 0;
 
 function makeItem(name, type, color, vibe, size, brand, price, photo) {
   return {
@@ -350,66 +336,20 @@ function renderCurrentLook() {
 }
 
 function renderPreview() {
-  const slots = Object.fromEntries(state.currentLook.map((item) => [getType(item.type).slot, item]));
-  const dress = slots.dress;
-  const upper = dress || slots.upper;
-  const bottom = slots.bottom;
-
-  el.previewTitle.textContent = state.currentLook.length ? "Current look" : "Preview";
-  el.upperWear.style.background = upper?.color || "#6f8f72";
-  el.upperWear.style.opacity = dress ? "0" : "1";
-  el.bottomWear.style.background = bottom?.color || "#8d3f5e";
-  el.bottomWear.style.opacity = dress ? "0" : "1";
-  el.bottomWear.style.height = bottom ? bottomHeight(bottom.type) : "122px";
-  el.bottomWear.style.clipPath = bottomClip(bottom?.type);
-
-  el.dressWear.style.opacity = dress ? "1" : "0";
-  el.dressWear.style.background = dress?.color || "#8d3f5e";
-  el.jacketWear.style.opacity = slots.layer ? "1" : "0";
-  el.jacketWear.style.borderColor = slots.layer?.color || "#6d91af";
-  el.hatWear.style.opacity = slots.head && slots.head.type === "hat" ? "1" : "0";
-  el.hatWear.style.background = slots.head?.color || "#c39742";
-  el.headWear.style.opacity = slots.head && slots.head.type !== "hat" ? "1" : "0";
-  el.headWear.style.background = slots.head?.color || "#c39742";
-  el.jewelryWear.style.opacity = slots.jewelry ? "1" : "0";
-  el.jewelryWear.style.borderColor = slots.jewelry?.color || "#c39742";
-  el.watchWear.style.opacity = slots.watch ? "1" : "0";
-  el.watchWear.style.borderColor = slots.watch?.color || "#c39742";
-  el.bagWear.style.opacity = slots.bag ? "1" : "0";
-  el.bagWear.style.background = slots.bag?.color || "#c39742";
-  el.shoeWear.style.opacity = slots.shoe ? "1" : "0";
-  el.shoeWear.style.background = slots.shoe?.color || "#1c231f";
+  el.previewTitle.textContent = state.currentLook.length ? "AI try-on result" : "Preview";
   markTryOnStale();
   updateRotation();
 }
 
-function bottomHeight(type) {
-  if (type === "longSkirt") return "156px";
-  if (type === "jeans" || type === "trouser") return "142px";
-  if (type === "shorts" || type === "skort") return "88px";
-  return "122px";
-}
-
-function bottomClip(type) {
-  if (type === "jeans" || type === "trouser") {
-    return "polygon(8% 0, 92% 0, 84% 100%, 58% 100%, 50% 28%, 42% 100%, 16% 100%)";
-  }
-  return "polygon(13% 0, 87% 0, 100% 100%, 0 100%)";
-}
-
 function updateRotation() {
   const angle = Number(el.rotateSlider.value);
-  el.avatar.style.transform = `rotateY(${angle}deg)`;
   const view = getViewFromAngle(angle);
   el.angleLabel.textContent = view[0].toUpperCase() + view.slice(1);
-  const photo = state.profile.photos?.[view];
-  el.photoLayer.style.backgroundImage = photo ? `url("${photo}")` : "";
   showAiTryOnView(view);
 }
 
 function markTryOnStale() {
-  const stage = el.tryOnCanvas.closest(".preview-stage");
-  stage.classList.remove("has-render");
+  const stage = el.aiTryOnImage.closest(".preview-stage");
   stage.classList.remove("has-ai-render");
   el.aiTryOnImage.removeAttribute("src");
   el.tryOnStatus.textContent = state.currentLook.length
@@ -432,11 +372,18 @@ async function generateTryOn() {
     return;
   }
 
+  const photographedGarments = state.currentLook.filter((item) => {
+    return item.photo && ["dress", "upper", "bottom", "layer"].includes(getType(item.type).slot);
+  });
+  if (!photographedGarments.length) {
+    el.tryOnStatus.textContent = "Upload a photo for the selected dress or clothing item first. AI try-on needs the real garment image.";
+    return;
+  }
+
   try {
     const health = await apiJson("/health");
     if (!health.aiTryOnConfigured) {
-      await generateLocalTryOn();
-      el.tryOnStatus.innerHTML = "<strong>AI generation is not configured.</strong> Add an OpenAI API key on the server to create photorealistic try-on photos. Showing local preview.";
+      el.tryOnStatus.innerHTML = "<strong>AI generation is not configured.</strong> Start the server with an OpenAI API key to create a real try-on photo.";
       return;
     }
 
@@ -457,13 +404,12 @@ async function generateTryOn() {
     showAiTryOnView(getViewFromAngle(Number(el.rotateSlider.value)));
     el.tryOnStatus.innerHTML = `<strong>AI try-on ready.</strong> Rotate to inspect ${photoViews.length} generated view${photoViews.length === 1 ? "" : "s"}.`;
   } catch (error) {
-    await generateLocalTryOn();
-    el.tryOnStatus.innerHTML = `<strong>AI generation could not finish.</strong> ${escapeHtml(error.message)} Showing local preview.`;
+    el.tryOnStatus.innerHTML = `<strong>AI generation could not finish.</strong> ${escapeHtml(error.message)}`;
   }
 }
 
 function showAiTryOnView(view) {
-  const stage = el.tryOnCanvas.closest(".preview-stage");
+  const stage = el.aiTryOnImage.closest(".preview-stage");
   const generatedPhoto = state.aiTryOnViews?.[view];
   if (generatedPhoto) {
     el.aiTryOnImage.src = generatedPhoto;
@@ -473,263 +419,6 @@ function showAiTryOnView(view) {
   }
   stage.classList.remove("has-ai-render");
   el.aiTryOnImage.removeAttribute("src");
-}
-
-async function generateLocalTryOn() {
-  const token = ++renderToken;
-  const stage = el.tryOnCanvas.closest(".preview-stage");
-  const context = el.tryOnCanvas.getContext("2d");
-  const view = getViewFromAngle(Number(el.rotateSlider.value));
-  const userPhoto = state.profile.photos?.[view] || state.profile.photos?.front || "";
-  const slots = Object.fromEntries(state.currentLook.map((item) => [getType(item.type).slot, item]));
-
-  context.clearRect(0, 0, el.tryOnCanvas.width, el.tryOnCanvas.height);
-
-  await drawStudioBase(context, userPhoto);
-  if (token !== renderToken) return;
-
-  drawBodyGuide(context, Boolean(userPhoto));
-  await drawLookLayers(context, slots);
-  if (token !== renderToken) return;
-
-  drawFinish(context);
-  stage.classList.add("has-render");
-}
-
-async function drawStudioBase(context, userPhoto) {
-  const { width, height } = context.canvas;
-  const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, "#faf8f3");
-  gradient.addColorStop(0.55, "#f3f6f1");
-  gradient.addColorStop(1, "#eee7dd");
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, width, height);
-
-  if (!userPhoto) return;
-
-  const image = await loadImage(userPhoto);
-  if (!image) return;
-  drawImageCover(context, image, 0, 0, width, height);
-  context.fillStyle = "rgba(250, 248, 243, 0.24)";
-  context.fillRect(0, 0, width, height);
-}
-
-function drawBodyGuide(context, hasPhoto) {
-  const alpha = hasPhoto ? 0.18 : 0.86;
-  context.save();
-  context.globalAlpha = alpha;
-  context.fillStyle = "#d6a17d";
-  roundedPath(context, 392, 105, 116, 132, 54);
-  context.fill();
-
-  context.fillStyle = "#b97855";
-  roundedPath(context, 370, 820, 58, 238, 26);
-  context.fill();
-  roundedPath(context, 472, 820, 58, 238, 26);
-  context.fill();
-
-  context.fillStyle = "rgba(28, 35, 31, 0.16)";
-  ellipse(context, 450, 1084, 190, 28);
-  context.fill();
-  context.restore();
-}
-
-async function drawLookLayers(context, slots) {
-  const dress = slots.dress;
-  const upper = dress || slots.upper;
-  const bottom = slots.bottom;
-
-  if (dress) {
-    await drawGarment(context, dress, dressPath, "#7b3150");
-  } else {
-    if (upper) await drawGarment(context, upper, upperPath, "#496b50");
-    if (bottom) await drawGarment(context, bottom, (ctx) => bottomPath(ctx, bottom.type), "#242429");
-  }
-
-  if (slots.layer) await drawGarment(context, slots.layer, jacketPath, "#6683a5", 0.82);
-  if (slots.head) await drawGarment(context, slots.head, headPath, "#f2ead8", 0.9);
-  if (slots.jewelry) await drawAccessory(context, slots.jewelry, "jewelry");
-  if (slots.watch) await drawAccessory(context, slots.watch, "watch");
-  if (slots.bag) await drawAccessory(context, slots.bag, "bag");
-  if (slots.shoe) await drawAccessory(context, slots.shoe, "shoe");
-}
-
-async function drawGarment(context, item, pathBuilder, fallback, opacity = 0.9) {
-  context.save();
-  context.shadowColor = "rgba(28, 35, 31, 0.24)";
-  context.shadowBlur = 28;
-  context.shadowOffsetY = 18;
-  pathBuilder(context);
-  context.fillStyle = item.color || fallback;
-  context.globalAlpha = opacity;
-  context.fill();
-  context.restore();
-
-  context.save();
-  pathBuilder(context);
-  context.clip();
-  const image = item.photo ? await loadImage(item.photo) : null;
-  if (image) {
-    context.globalAlpha = 0.74;
-    drawImageCover(context, image, 235, 260, 430, 610);
-  }
-  context.globalCompositeOperation = "soft-light";
-  const sheen = context.createLinearGradient(245, 250, 625, 830);
-  sheen.addColorStop(0, "rgba(255, 255, 255, 0.55)");
-  sheen.addColorStop(0.42, "rgba(255, 255, 255, 0.04)");
-  sheen.addColorStop(1, "rgba(0, 0, 0, 0.36)");
-  context.fillStyle = sheen;
-  context.fillRect(200, 220, 500, 690);
-  context.restore();
-
-  context.save();
-  context.globalAlpha = 0.28;
-  context.strokeStyle = "rgba(255, 255, 255, 0.8)";
-  context.lineWidth = 2;
-  pathBuilder(context);
-  context.stroke();
-  context.restore();
-}
-
-async function drawAccessory(context, item, slot) {
-  context.save();
-  context.fillStyle = item.color || "#c39742";
-  context.strokeStyle = item.color || "#c39742";
-  context.lineWidth = 12;
-  context.shadowColor = "rgba(28, 35, 31, 0.2)";
-  context.shadowBlur = 16;
-  context.shadowOffsetY = 8;
-
-  if (slot === "jewelry") {
-    context.beginPath();
-    context.arc(450, 277, 64, 0.2, Math.PI - 0.2);
-    context.stroke();
-  }
-  if (slot === "watch") {
-    ellipse(context, 645, 518, 26, 26);
-    context.fill();
-  }
-  if (slot === "bag") {
-    roundedPath(context, 628, 500, 118, 154, 22);
-    context.fill();
-  }
-  if (slot === "shoe") {
-    roundedPath(context, 322, 1040, 128, 34, 18);
-    context.fill();
-    roundedPath(context, 452, 1040, 128, 34, 18);
-    context.fill();
-  }
-  context.restore();
-
-  if (item.photo && ["bag", "shoe"].includes(slot)) {
-    const image = await loadImage(item.photo);
-    if (!image) return;
-    context.save();
-    context.globalAlpha = 0.68;
-    if (slot === "bag") drawImageCover(context, image, 628, 500, 118, 154);
-    if (slot === "shoe") drawImageCover(context, image, 322, 1018, 258, 70);
-    context.restore();
-  }
-}
-
-function drawFinish(context) {
-  const { width, height } = context.canvas;
-  const vignette = context.createRadialGradient(width / 2, height / 2, 200, width / 2, height / 2, 720);
-  vignette.addColorStop(0, "rgba(255,255,255,0)");
-  vignette.addColorStop(1, "rgba(28,35,31,0.16)");
-  context.fillStyle = vignette;
-  context.fillRect(0, 0, width, height);
-}
-
-function dressPath(context) {
-  context.beginPath();
-  context.moveTo(334, 278);
-  context.bezierCurveTo(380, 246, 522, 246, 566, 278);
-  context.lineTo(645, 840);
-  context.bezierCurveTo(560, 900, 340, 900, 255, 840);
-  context.closePath();
-}
-
-function upperPath(context) {
-  roundedPath(context, 318, 282, 264, 258, 72);
-}
-
-function jacketPath(context) {
-  context.beginPath();
-  context.moveTo(284, 275);
-  context.bezierCurveTo(325, 236, 575, 236, 616, 275);
-  context.lineTo(642, 602);
-  context.lineTo(562, 620);
-  context.lineTo(544, 336);
-  context.lineTo(356, 336);
-  context.lineTo(338, 620);
-  context.lineTo(258, 602);
-  context.closePath();
-}
-
-function bottomPath(context, type) {
-  context.beginPath();
-  context.moveTo(318, 530);
-  context.lineTo(582, 530);
-  if (["jeans", "trouser"].includes(type)) {
-    context.lineTo(548, 1015);
-    context.lineTo(466, 1015);
-    context.lineTo(450, 646);
-    context.lineTo(432, 1015);
-    context.lineTo(350, 1015);
-    context.closePath();
-    return;
-  }
-  const hem = type === "longSkirt" ? 920 : type === "skort" || type === "shorts" ? 675 : 820;
-  context.lineTo(650, hem);
-  context.bezierCurveTo(565, hem + 42, 335, hem + 42, 250, hem);
-  context.closePath();
-}
-
-function headPath(context) {
-  roundedPath(context, 356, 92, 188, 54, 28);
-}
-
-function roundedPath(context, x, y, width, height, radius) {
-  const r = Math.min(radius, width / 2, height / 2);
-  context.beginPath();
-  context.moveTo(x + r, y);
-  context.lineTo(x + width - r, y);
-  context.quadraticCurveTo(x + width, y, x + width, y + r);
-  context.lineTo(x + width, y + height - r);
-  context.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-  context.lineTo(x + r, y + height);
-  context.quadraticCurveTo(x, y + height, x, y + height - r);
-  context.lineTo(x, y + r);
-  context.quadraticCurveTo(x, y, x + r, y);
-  context.closePath();
-}
-
-function ellipse(context, x, y, width, height) {
-  context.beginPath();
-  context.ellipse(x, y, width / 2, height / 2, 0, 0, Math.PI * 2);
-}
-
-function drawImageCover(context, image, x, y, width, height) {
-  const scale = Math.max(width / image.width, height / image.height);
-  const sourceWidth = width / scale;
-  const sourceHeight = height / scale;
-  const sourceX = (image.width - sourceWidth) / 2;
-  const sourceY = (image.height - sourceHeight) / 2;
-  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
-}
-
-function loadImage(source) {
-  return new Promise((resolve) => {
-    if (!source) {
-      resolve(null);
-      return;
-    }
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", () => resolve(null));
-    image.src = source;
-  });
 }
 
 function getViewFromAngle(angle) {

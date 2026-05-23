@@ -247,17 +247,27 @@ async function createAiTryOn(view) {
     throw new HttpError(400, "Select a look before generating a try-on.");
   }
 
+  const clothingReferences = state.currentLook.filter((item) => {
+    const type = String(item.type || "");
+    return item.photo && !["hat", "headband", "clip", "shoe", "jewelry", "watch", "purse", "clutch", "bag"].includes(type);
+  });
+  if (!clothingReferences.length) {
+    throw new HttpError(400, "Upload a photo of the selected dress or clothing item before generating a realistic try-on.");
+  }
+
   const references = [
     { source: personPhoto, label: `person-${selectedView}` },
+    ...clothingReferences
+      .map((item) => ({ source: item.photo, label: item.name || item.type || "apparel" })),
     ...state.currentLook
-      .filter((item) => item.photo)
+      .filter((item) => item.photo && !clothingReferences.includes(item))
       .map((item) => ({ source: item.photo, label: item.name || item.type || "apparel" })),
   ];
 
   const form = new FormData();
   form.append("model", process.env.OPENAI_IMAGE_MODEL || "gpt-image-2");
   form.append("size", "1024x1536");
-  form.append("quality", "medium");
+  form.append("quality", process.env.OPENAI_IMAGE_QUALITY || "high");
   form.append("prompt", buildTryOnPrompt(state, selectedView));
 
   for (const [index, reference] of references.entries()) {
@@ -297,12 +307,14 @@ function buildTryOnPrompt(state, view) {
     .map((item) => `${item.name || item.type} (${item.type}, ${item.color || "original color"})`)
     .join(", ");
   return [
-    `Create a photorealistic full-body ${view} view fashion try-on image.`,
-    "The first reference image is the same adult person. Preserve their recognizable identity, face, body proportions, skin tone, hair, and pose as closely as possible.",
-    `Dress that person in this selected outfit: ${apparel}.`,
-    "Additional reference images, when supplied, are the actual clothing or accessories and should be faithfully preserved in color, texture, cut, and detailing.",
-    "Keep the result realistic and tasteful, fully clothed, with natural fabric draping and studio lighting on a clean neutral background.",
-    `The visible body orientation must match a ${view} camera view so it aligns with the other try-on angles.`,
+    `Perform a realistic virtual try-on photo edit for the ${view} view.`,
+    "Reference image 1 is the person photo and is the base image to edit. Keep the exact same person, face, hair, skin tone, body size, body proportions, stance, camera framing, and background.",
+    "Do not slim, enlarge, beautify, re-pose, replace, or redraw the person. Do not paste a flat garment image on top of the body.",
+    `Replace only the existing clothing as necessary so the person is naturally wearing this outfit: ${apparel}.`,
+    "The following apparel reference images show the real garments. Preserve their cut, color, print, fabric texture, neckline, sleeve length, hem length, fit, and accessories accurately.",
+    "Make the clothing conform to the person's real body with realistic folds, occlusion, lighting, perspective, seams, and shadows.",
+    "Output one photorealistic full-body fashion photo only, not a collage, not a mannequin, not a before-and-after image, and not an illustration.",
+    `Maintain a consistent ${view} camera view for the generated output.`,
   ].join(" ");
 }
 

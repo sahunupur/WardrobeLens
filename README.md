@@ -12,7 +12,7 @@ A local-first wardrobe catalog, look builder, and outfit recommendation prototyp
 - Lets the user manually create a look, preview it, rotate the view, and save it.
 - Uses the registered four-angle photos as the background reference for the closest 360 preview angle.
 - Generates AI try-on views from uploaded person/apparel photos when an OpenAI API key is configured.
-- Falls back to a local try-on canvas when AI generation is not configured.
+- Requires the AI image model for try-on rather than showing a misleading pasted-on clothing overlay.
 
 ## Storage
 
@@ -41,7 +41,7 @@ Backend endpoints:
 
 ## AI Try-On Setup
 
-Photorealistic try-on generation needs an image model API. WardrobeLens uses the OpenAI Image Edit API with `gpt-image-2` by default, sending the chosen body-angle photo and selected apparel photos as references.
+Photorealistic try-on generation needs an image model API. WardrobeLens uses the OpenAI Image Edit API with `gpt-image-2` by default, sending the chosen body-angle photo as the base edit image and selected apparel photos as clothing references. A garment photo is required; text-only clothing entries are not sufficient for realistic try-on.
 
 In PowerShell, set your API key before starting the server:
 
@@ -54,9 +54,10 @@ Optional model override:
 
 ```powershell
 $env:OPENAI_IMAGE_MODEL="gpt-image-2"
+$env:OPENAI_IMAGE_QUALITY="high"
 ```
 
-Click **Generate AI 360 views** after selecting a look. The app generates one photographic try-on image for each body angle you uploaded and displays those images as you rotate the preview.
+Click **Generate AI 360 views** after selecting a look with an uploaded clothing photo. The app generates one photographic try-on image for each body angle you uploaded and displays those images as you rotate the preview. There is no fake overlay fallback: if AI is not configured, the app will ask you to configure the model instead.
 
 ## Notes
 

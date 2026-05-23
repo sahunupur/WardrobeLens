@@ -389,27 +389,6 @@ input[type="color"] {
   filter: blur(4px);
 }
 
-.photo-layer {
-  position: absolute;
-  inset: 0;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  opacity: 0;
-  filter: saturate(0.95);
-}
-
-.tryon-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 2;
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
 .ai-tryon-image {
   position: absolute;
   inset: 0;
@@ -444,26 +423,12 @@ input[type="color"] {
   font-size: 0.88rem;
 }
 
-.preview-stage.has-render .tryon-empty {
-  display: none;
-}
-
-.preview-stage.has-render .tryon-canvas {
-  opacity: 1;
-}
-
 .preview-stage.has-ai-render .ai-tryon-image {
   opacity: 1;
 }
 
-.preview-stage.has-ai-render .tryon-empty,
-.preview-stage.has-ai-render .tryon-canvas,
-.preview-stage.has-ai-render .avatar {
+.preview-stage.has-ai-render .tryon-empty {
   display: none;
-}
-
-.preview-stage.has-render .avatar {
-  opacity: 0;
 }
 
 .tryon-status {
@@ -479,162 +444,6 @@ input[type="color"] {
 
 .tryon-status strong {
   color: var(--ink);
-}
-
-.avatar {
-  position: relative;
-  width: 190px;
-  height: 390px;
-  transform-style: preserve-3d;
-  transition: transform 180ms ease;
-  z-index: 1;
-}
-
-.avatar::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 4px;
-  width: 76px;
-  height: 84px;
-  border-radius: 44% 44% 48% 48%;
-  background: linear-gradient(140deg, #d9a886, #b97855);
-  transform: translateX(-50%);
-}
-
-.avatar::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 308px;
-  width: 116px;
-  height: 70px;
-  border-radius: 0 0 28px 28px;
-  background: linear-gradient(90deg, #b97855 0 42%, transparent 42% 58%, #b97855 58% 100%);
-  transform: translateX(-50%);
-}
-
-.hat-wear,
-.head-wear,
-.jewelry-wear,
-.upper-wear,
-.jacket-wear,
-.dress-wear,
-.bottom-wear,
-.watch-wear,
-.bag-wear,
-.shoe-wear {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.hat-wear {
-  top: -4px;
-  width: 102px;
-  height: 26px;
-  border-radius: 50% 50% 10px 10px;
-  background: var(--gold);
-  opacity: 0;
-}
-
-.head-wear {
-  top: 24px;
-  width: 84px;
-  height: 13px;
-  border-radius: 999px;
-  background: var(--gold);
-  opacity: 0;
-}
-
-.jewelry-wear {
-  top: 84px;
-  width: 54px;
-  height: 22px;
-  border: 5px solid var(--gold);
-  border-top: 0;
-  border-radius: 0 0 42px 42px;
-  opacity: 0;
-}
-
-.upper-wear {
-  top: 98px;
-  width: 122px;
-  height: 118px;
-  border-radius: 34px 34px 18px 18px;
-  background: var(--sage);
-  box-shadow: inset 16px 0 rgba(255, 255, 255, 0.16);
-}
-
-.jacket-wear {
-  top: 94px;
-  width: 154px;
-  height: 146px;
-  border-radius: 36px 36px 20px 20px;
-  border: 18px solid var(--sky);
-  border-bottom-width: 24px;
-  background: transparent;
-  opacity: 0;
-}
-
-.dress-wear {
-  top: 112px;
-  width: 132px;
-  height: 202px;
-  border-radius: 32px 32px 52px 52px;
-  background: var(--berry);
-  clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
-  opacity: 0;
-}
-
-.bottom-wear {
-  top: 216px;
-  width: 132px;
-  height: 122px;
-  border-radius: 14px 14px 42px 42px;
-  background: var(--berry);
-  clip-path: polygon(13% 0, 87% 0, 100% 100%, 0 100%);
-}
-
-.watch-wear {
-  top: 188px;
-  left: calc(50% + 82px);
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 5px solid var(--gold);
-  opacity: 0;
-}
-
-.bag-wear {
-  top: 170px;
-  left: calc(50% + 98px);
-  width: 56px;
-  height: 66px;
-  border-radius: 8px 8px 18px 18px;
-  background: var(--gold);
-  opacity: 0;
-}
-
-.bag-wear::before {
-  content: "";
-  position: absolute;
-  width: 38px;
-  height: 30px;
-  top: -18px;
-  left: 9px;
-  border: 5px solid currentColor;
-  border-bottom: 0;
-  border-radius: 24px 24px 0 0;
-}
-
-.shoe-wear {
-  top: 364px;
-  width: 142px;
-  height: 18px;
-  background: linear-gradient(90deg, var(--ink) 0 45%, transparent 45% 55%, var(--ink) 55% 100%);
-  border-radius: 999px;
-  opacity: 0;
 }
 
 #rotateSlider {

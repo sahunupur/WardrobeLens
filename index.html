@@ -136,23 +136,9 @@
 
             <div class="preview-stage">
               <img id="aiTryOnImage" class="ai-tryon-image" alt="AI generated outfit try-on view" />
-              <canvas id="tryOnCanvas" class="tryon-canvas" width="900" height="1200"></canvas>
               <div id="tryOnEmpty" class="tryon-empty">
-                <strong>Upload photos to create AI try-on views</strong>
-                <span>Front, back, left, right, and apparel photos produce the best 360 set.</span>
-              </div>
-              <div id="photoLayer" class="photo-layer"></div>
-              <div id="avatar" class="avatar">
-                <div id="hatWear" class="hat-wear"></div>
-                <div id="headWear" class="head-wear"></div>
-                <div id="jewelryWear" class="jewelry-wear"></div>
-                <div id="upperWear" class="upper-wear"></div>
-                <div id="jacketWear" class="jacket-wear"></div>
-                <div id="dressWear" class="dress-wear"></div>
-                <div id="bottomWear" class="bottom-wear"></div>
-                <div id="watchWear" class="watch-wear"></div>
-                <div id="bagWear" class="bag-wear"></div>
-                <div id="shoeWear" class="shoe-wear"></div>
+                <strong>Your generated try-on will appear here</strong>
+                <span>Upload your body photo and actual apparel photo, then generate a new realistic image.</span>
               </div>
             </div>
             <div class="rotation-row">
@@ -160,7 +146,7 @@
               <button id="generateTryOnButton" class="primary-button" type="button">Generate AI 360 views</button>
               <button id="saveLookButton" class="secondary-button" type="button">Save look</button>
             </div>
-            <div id="tryOnStatus" class="tryon-status">AI try-on generates a photo for each uploaded body angle.</div>
+            <div id="tryOnStatus" class="tryon-status">Requires a configured AI image model, a body photo, and an apparel photo.</div>
             <div id="currentLookList" class="look-list"></div>
           </article>
 
