@@ -15,7 +15,9 @@ A local-first wardrobe catalog, look builder, and outfit recommendation prototyp
 
 ## Storage
 
-This prototype uses browser `localStorage` as the database so the catalog and saved looks appear on the next visit from the same browser. For production, the next upgrade should be IndexedDB for larger image storage or a cloud database such as Firebase/Supabase for account sync.
+This project now includes a small Node.js backend. It stores app data in `data/wardrobelens.json` and uploaded images in `uploads/`. Browser `localStorage` remains as a fallback if the frontend is opened without the backend server.
+
+For production, the next upgrade should be authentication plus a managed database/storage layer such as Supabase, Firebase, or a custom PostgreSQL API.
 
 ## Run
 
@@ -26,6 +28,14 @@ node server.mjs
 ```
 
 Then visit `http://localhost:4173`.
+
+Backend endpoints:
+
+- `GET /api/health`
+- `GET /api/state`
+- `PUT /api/state`
+- `DELETE /api/state`
+- `POST /api/uploads`
 
 ## Notes
 

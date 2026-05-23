@@ -1,4 +1,5 @@
 const STORAGE_KEY = "wardrobelens-v1";
+const API_BASE = "/api";
 
 const measurementDefs = [
   { key: "height", label: "Height", units: ["cm", "in", "ft", "m"] },
@@ -157,6 +158,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  persistState(state);
 }
 
 function getType(type) {
@@ -167,11 +169,41 @@ function getItemsBySlot(slot) {
   return state.catalog.filter((item) => getType(item.type).slot === slot);
 }
 
-function init() {
+async function init() {
   renderMeasurementInputs();
   renderTypeOptions();
   bindEvents();
+  await hydrateFromBackend();
   render();
+}
+
+async function hydrateFromBackend() {
+  try {
+    const backendState = await apiJson("/state");
+    const localHasData = state.registered || state.catalog.length || state.savedLooks.length;
+    const backendHasData = backendState.registered || backendState.catalog?.length || backendState.savedLooks?.length;
+
+    if (backendHasData || !localHasData) {
+      state = { ...structuredClone(defaultState), ...backendState };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return;
+    }
+
+    await persistState(state);
+  } catch {
+    // The app still works from localStorage when opened as a plain static file.
+  }
+}
+
+async function persistState(nextState) {
+  try {
+    await apiJson("/state", {
+      method: "PUT",
+      body: JSON.stringify(nextState),
+    });
+  } catch {
+    // Local fallback already happened in saveState.
+  }
 }
 
 function renderMeasurementInputs() {
@@ -869,11 +901,30 @@ function editProfile() {
 function resetApp() {
   localStorage.removeItem(STORAGE_KEY);
   state = structuredClone(defaultState);
+  apiJson("/state", { method: "DELETE" }).catch(() => {});
   renderMeasurementInputs();
   render();
 }
 
-function readFile(file) {
+async function readFile(file) {
+  const dataUrl = await readFileAsDataUrl(file);
+  if (!dataUrl) return "";
+
+  try {
+    const upload = await apiJson("/uploads", {
+      method: "POST",
+      body: JSON.stringify({
+        name: file.name,
+        dataUrl,
+      }),
+    });
+    return upload.url || dataUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
+function readFileAsDataUrl(file) {
   return new Promise((resolve) => {
     if (!file) {
       resolve("");
@@ -883,6 +934,19 @@ function readFile(file) {
     reader.addEventListener("load", () => resolve(reader.result));
     reader.readAsDataURL(file);
   });
+}
+
+async function apiJson(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { "content-type": "application/json", ...(options.headers || {}) },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 function uniqueItems(items) {

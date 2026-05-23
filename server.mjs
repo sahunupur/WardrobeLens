@@ -1,9 +1,33 @@
-import { createReadStream, existsSync, statSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
+import { basename, extname, join, resolve } from "node:path";
+import { randomUUID } from "node:crypto";
 
 const port = Number(process.env.PORT || 4173);
-const root = process.cwd();
+const root = resolve(process.cwd());
+const dataDir = join(root, "data");
+const uploadDir = join(root, "uploads");
+const dbPath = join(dataDir, "wardrobelens.json");
+
+const defaultState = {
+  registered: false,
+  profile: {
+    name: "",
+    gender: "",
+    measurements: {},
+    photos: { front: "", back: "", left: "", right: "" },
+  },
+  catalog: [],
+  currentLook: [],
+  savedLooks: [],
+};
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -13,13 +37,74 @@ const mimeTypes = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
   ".svg": "image/svg+xml",
 };
 
-createServer((request, response) => {
-  const url = new URL(request.url || "/", `http://${request.headers.host}`);
-  const safePath = normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, "");
-  let filePath = join(root, safePath);
+ensureStorage();
+
+createServer(async (request, response) => {
+  try {
+    const url = new URL(request.url || "/", `http://${request.headers.host}`);
+
+    if (url.pathname.startsWith("/api/")) {
+      await handleApi(request, response, url);
+      return;
+    }
+
+    serveStatic(url.pathname, response);
+  } catch (error) {
+    sendJson(response, 500, { error: "Server error", details: error.message });
+  }
+}).listen(port, () => {
+  console.log(`WardrobeLens running at http://127.0.0.1:${port}`);
+});
+
+async function handleApi(request, response, url) {
+  if (request.method === "GET" && url.pathname === "/api/health") {
+    sendJson(response, 200, { ok: true, app: "WardrobeLens" });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/state") {
+    sendJson(response, 200, readState());
+    return;
+  }
+
+  if (request.method === "PUT" && url.pathname === "/api/state") {
+    const body = await readJsonBody(request);
+    const nextState = sanitizeState(body);
+    writeState(nextState);
+    sendJson(response, 200, nextState);
+    return;
+  }
+
+  if (request.method === "DELETE" && url.pathname === "/api/state") {
+    writeState(defaultState);
+    sendJson(response, 200, defaultState);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/uploads") {
+    const body = await readJsonBody(request, 12 * 1024 * 1024);
+    const upload = saveUpload(body);
+    sendJson(response, 201, upload);
+    return;
+  }
+
+  sendJson(response, 404, { error: "API route not found" });
+}
+
+function serveStatic(pathname, response) {
+  const filePathCandidate = resolve(root, `.${decodeURIComponent(pathname)}`);
+  let filePath = filePathCandidate;
+
+  if (!filePath.startsWith(root)) {
+    response.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
+    response.end("Forbidden");
+    return;
+  }
 
   if (!existsSync(filePath)) {
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
@@ -32,9 +117,103 @@ createServer((request, response) => {
   }
 
   response.writeHead(200, {
-    "content-type": mimeTypes[extname(filePath)] || "application/octet-stream",
+    "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
   });
   createReadStream(filePath).pipe(response);
-}).listen(port, () => {
-  console.log(`WardrobeLens running at http://127.0.0.1:${port}`);
-});
+}
+
+function ensureStorage() {
+  mkdirSync(dataDir, { recursive: true });
+  mkdirSync(uploadDir, { recursive: true });
+  if (!existsSync(dbPath)) {
+    writeState(defaultState);
+  }
+}
+
+function readState() {
+  try {
+    return sanitizeState(JSON.parse(readFileSync(dbPath, "utf8")));
+  } catch {
+    return structuredClone(defaultState);
+  }
+}
+
+function writeState(state) {
+  writeFileSync(dbPath, `${JSON.stringify(sanitizeState(state), null, 2)}\n`);
+}
+
+function sanitizeState(value) {
+  const state = typeof value === "object" && value ? value : {};
+  return {
+    registered: Boolean(state.registered),
+    profile: {
+      ...defaultState.profile,
+      ...(typeof state.profile === "object" && state.profile ? state.profile : {}),
+      photos: {
+        ...defaultState.profile.photos,
+        ...(typeof state.profile?.photos === "object" && state.profile.photos ? state.profile.photos : {}),
+      },
+    },
+    catalog: Array.isArray(state.catalog) ? state.catalog : [],
+    currentLook: Array.isArray(state.currentLook) ? state.currentLook : [],
+    savedLooks: Array.isArray(state.savedLooks) ? state.savedLooks : [],
+  };
+}
+
+async function readJsonBody(request, limit = 2 * 1024 * 1024) {
+  let size = 0;
+  const chunks = [];
+
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > limit) {
+      throw new Error("Request body is too large");
+    }
+    chunks.push(chunk);
+  }
+
+  const raw = Buffer.concat(chunks).toString("utf8");
+  return raw ? JSON.parse(raw) : {};
+}
+
+function saveUpload(body) {
+  const dataUrl = String(body.dataUrl || "");
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Upload must include a dataUrl");
+  }
+
+  const mimeType = match[1];
+  if (!mimeType.startsWith("image/")) {
+    throw new Error("Only image uploads are supported");
+  }
+
+  const extension = extensionFromMime(mimeType);
+  const originalName = basename(String(body.name || `upload.${extension}`))
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^\w.-]/g, "_");
+  const filename = `${Date.now()}-${randomUUID()}-${originalName || "upload"}.${extension}`;
+  const filePath = join(uploadDir, filename);
+  writeFileSync(filePath, Buffer.from(match[2], "base64"));
+
+  return {
+    url: `/uploads/${filename}`,
+    filename,
+    mimeType,
+  };
+}
+
+function extensionFromMime(mimeType) {
+  const known = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+  };
+  return known[mimeType] || "img";
+}
+
+function sendJson(response, status, payload) {
+  response.writeHead(status, { "content-type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify(payload));
+}
