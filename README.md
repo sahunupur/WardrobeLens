@@ -11,7 +11,8 @@ A local-first wardrobe catalog, look builder, and outfit recommendation prototyp
 - Recommends a getup from the catalog based on occasion, weather, and notes.
 - Lets the user manually create a look, preview it, rotate the view, and save it.
 - Uses the registered four-angle photos as the background reference for the closest 360 preview angle.
-- Generates a more realistic local try-on canvas by blending the user photo, apparel photos, garment masks, shadows, and fabric highlights.
+- Generates AI try-on views from uploaded person/apparel photos when an OpenAI API key is configured.
+- Falls back to a local try-on canvas when AI generation is not configured.
 
 ## Storage
 
@@ -36,12 +37,31 @@ Backend endpoints:
 - `PUT /api/state`
 - `DELETE /api/state`
 - `POST /api/uploads`
+- `POST /api/try-on`
+
+## AI Try-On Setup
+
+Photorealistic try-on generation needs an image model API. WardrobeLens uses the OpenAI Image Edit API with `gpt-image-2` by default, sending the chosen body-angle photo and selected apparel photos as references.
+
+In PowerShell, set your API key before starting the server:
+
+```powershell
+$env:OPENAI_API_KEY="your_api_key_here"
+node server.mjs
+```
+
+Optional model override:
+
+```powershell
+$env:OPENAI_IMAGE_MODEL="gpt-image-2"
+```
+
+Click **Generate AI 360 views** after selecting a look. The app generates one photographic try-on image for each body angle you uploaded and displays those images as you rotate the preview.
 
 ## Notes
 
-The current prototype uses a free local rules-based recommender and a browser canvas try-on renderer. It does not call a paid image model. A production version can add:
+The local recommendation engine remains free. AI try-on requests use a paid image API when configured. The generated front/right/back/left views simulate a 360 review; they are not a true continuous 3D avatar or mesh. A production version can add:
 
 - Login and cloud sync.
 - Real garment photo uploads and segmentation.
-- AI-generated user try-on images through a paid or self-hosted model.
 - A true 3D avatar pipeline for full 360-degree try-on.

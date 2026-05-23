@@ -53,6 +53,7 @@ const defaultState = {
   catalog: [],
   currentLook: [],
   savedLooks: [],
+  aiTryOnViews: {},
 };
 
 const demoCatalog = [
@@ -88,6 +89,7 @@ const el = {
   savedLooksList: document.querySelector("#savedLooksList"),
   currentLookList: document.querySelector("#currentLookList"),
   previewTitle: document.querySelector("#previewTitle"),
+  aiTryOnImage: document.querySelector("#aiTryOnImage"),
   tryOnCanvas: document.querySelector("#tryOnCanvas"),
   tryOnEmpty: document.querySelector("#tryOnEmpty"),
   tryOnStatus: document.querySelector("#tryOnStatus"),
@@ -321,6 +323,7 @@ function renderSavedLooks() {
     button.addEventListener("click", () => {
       const look = state.savedLooks.find((saved) => saved.id === button.dataset.loadLook);
       state.currentLook = look ? look.items.map((id) => state.catalog.find((item) => item.id === id)).filter(Boolean) : [];
+      state.aiTryOnViews = {};
       saveState();
       renderDashboard();
     });
@@ -401,18 +404,78 @@ function updateRotation() {
   el.angleLabel.textContent = view[0].toUpperCase() + view.slice(1);
   const photo = state.profile.photos?.[view];
   el.photoLayer.style.backgroundImage = photo ? `url("${photo}")` : "";
-  markTryOnStale();
+  showAiTryOnView(view);
 }
 
 function markTryOnStale() {
   const stage = el.tryOnCanvas.closest(".preview-stage");
   stage.classList.remove("has-render");
+  stage.classList.remove("has-ai-render");
+  el.aiTryOnImage.removeAttribute("src");
   el.tryOnStatus.textContent = state.currentLook.length
-    ? "Look ready. Generate a realistic local try-on when you want to preview it."
+    ? "Look ready. Generate AI views to create new images of you wearing it."
     : "Select apparel or ask for a recommendation before generating a try-on.";
 }
 
 async function generateTryOn() {
+  if (!state.currentLook.length) {
+    el.tryOnStatus.textContent = "Choose clothing first, then generate the try-on.";
+    return;
+  }
+
+  const photoViews = Object.entries(state.profile.photos || {})
+    .filter(([, photo]) => Boolean(photo))
+    .map(([view]) => view);
+
+  if (!photoViews.length) {
+    el.tryOnStatus.textContent = "Upload at least one profile photo before generating AI try-on views.";
+    return;
+  }
+
+  try {
+    const health = await apiJson("/health");
+    if (!health.aiTryOnConfigured) {
+      await generateLocalTryOn();
+      el.tryOnStatus.innerHTML = "<strong>AI generation is not configured.</strong> Add an OpenAI API key on the server to create photorealistic try-on photos. Showing local preview.";
+      return;
+    }
+
+    await persistState(state);
+    state.aiTryOnViews = {};
+
+    for (let index = 0; index < photoViews.length; index += 1) {
+      const view = photoViews[index];
+      el.tryOnStatus.innerHTML = `<strong>Generating ${view} view...</strong> ${index + 1} of ${photoViews.length} AI photos.`;
+      const output = await apiJson("/try-on", {
+        method: "POST",
+        body: JSON.stringify({ view }),
+      });
+      state.aiTryOnViews[view] = output.url;
+    }
+
+    saveState();
+    showAiTryOnView(getViewFromAngle(Number(el.rotateSlider.value)));
+    el.tryOnStatus.innerHTML = `<strong>AI try-on ready.</strong> Rotate to inspect ${photoViews.length} generated view${photoViews.length === 1 ? "" : "s"}.`;
+  } catch (error) {
+    await generateLocalTryOn();
+    el.tryOnStatus.innerHTML = `<strong>AI generation could not finish.</strong> ${escapeHtml(error.message)} Showing local preview.`;
+  }
+}
+
+function showAiTryOnView(view) {
+  const stage = el.tryOnCanvas.closest(".preview-stage");
+  const generatedPhoto = state.aiTryOnViews?.[view];
+  if (generatedPhoto) {
+    el.aiTryOnImage.src = generatedPhoto;
+    stage.classList.remove("has-render");
+    stage.classList.add("has-ai-render");
+    return;
+  }
+  stage.classList.remove("has-ai-render");
+  el.aiTryOnImage.removeAttribute("src");
+}
+
+async function generateLocalTryOn() {
   const token = ++renderToken;
   const stage = el.tryOnCanvas.closest(".preview-stage");
   const context = el.tryOnCanvas.getContext("2d");
@@ -420,7 +483,6 @@ async function generateTryOn() {
   const userPhoto = state.profile.photos?.[view] || state.profile.photos?.front || "";
   const slots = Object.fromEntries(state.currentLook.map((item) => [getType(item.type).slot, item]));
 
-  el.tryOnStatus.innerHTML = "<strong>Generating local try-on...</strong> Blending your photo with selected apparel.";
   context.clearRect(0, 0, el.tryOnCanvas.width, el.tryOnCanvas.height);
 
   await drawStudioBase(context, userPhoto);
@@ -432,9 +494,6 @@ async function generateTryOn() {
 
   drawFinish(context);
   stage.classList.add("has-render");
-  el.tryOnStatus.innerHTML = userPhoto
-    ? "<strong>Try-on generated.</strong> This is a local visual composite. A production AI model can replace this renderer for photorealistic output."
-    : "<strong>Try-on generated with a model guide.</strong> Add your front/back/side photos for a more personal preview.";
 }
 
 async function drawStudioBase(context, userPhoto) {
@@ -692,6 +751,7 @@ async function registerUser(event) {
     left: await readFile(el.photoLeft.files?.[0]),
     right: await readFile(el.photoRight.files?.[0]),
   };
+  state.aiTryOnViews = {};
   state.registered = true;
   if (!state.catalog.length) {
     state.catalog = structuredClone(demoCatalog);
@@ -723,6 +783,7 @@ async function addApparel(event) {
     el.itemPrice.value,
     photo
   );
+  state.aiTryOnViews = {};
   state.catalog.unshift(item);
   saveState();
   el.apparelForm.reset();
@@ -760,6 +821,7 @@ function recommendLook(event) {
   });
 
   state.currentLook = uniqueItems(look);
+  state.aiTryOnViews = {};
   el.recommendationText.textContent = buildRecommendationText(state.currentLook, occasion, weather);
   saveState();
   closeDialog(el.wearDialog);
@@ -836,6 +898,7 @@ function useSelectedLook(event) {
   event.preventDefault();
   const selectedIds = [...el.lookPicker.querySelectorAll("input:checked")].map((input) => input.value);
   state.currentLook = selectedIds.map((id) => state.catalog.find((item) => item.id === id)).filter(Boolean);
+  state.aiTryOnViews = {};
   saveState();
   closeDialog(el.lookDialog);
   renderDashboard();
@@ -861,6 +924,7 @@ function removeItem(id) {
   state.savedLooks = state.savedLooks
     .map((look) => ({ ...look, items: look.items.filter((itemId) => itemId !== id) }))
     .filter((look) => look.items.length);
+  state.aiTryOnViews = {};
   saveState();
   renderDashboard();
 }
@@ -943,7 +1007,8 @@ async function apiJson(path, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error || `API request failed: ${response.status}`);
   }
 
   return response.json();

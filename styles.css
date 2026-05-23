@@ -410,6 +410,17 @@ input[type="color"] {
   transition: opacity 180ms ease;
 }
 
+.ai-tryon-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  z-index: 4;
+  transition: opacity 180ms ease;
+}
+
 .tryon-empty {
   position: absolute;
   z-index: 3;
@@ -439,6 +450,16 @@ input[type="color"] {
 
 .preview-stage.has-render .tryon-canvas {
   opacity: 1;
+}
+
+.preview-stage.has-ai-render .ai-tryon-image {
+  opacity: 1;
+}
+
+.preview-stage.has-ai-render .tryon-empty,
+.preview-stage.has-ai-render .tryon-canvas,
+.preview-stage.has-ai-render .avatar {
+  display: none;
 }
 
 .preview-stage.has-render .avatar {

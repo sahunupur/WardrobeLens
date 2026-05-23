@@ -98,8 +98,8 @@
           <div>
             <h2>Plan with what you own.</h2>
             <p>
-              Upload yourself, upload apparel, and generate a realistic local
-              try-on preview before you save the look.
+              Upload yourself and apparel, then generate realistic AI try-on
+              views before you save the look.
             </p>
           </div>
           <div class="hero-actions">
@@ -135,10 +135,11 @@
             </div>
 
             <div class="preview-stage">
+              <img id="aiTryOnImage" class="ai-tryon-image" alt="AI generated outfit try-on view" />
               <canvas id="tryOnCanvas" class="tryon-canvas" width="900" height="1200"></canvas>
               <div id="tryOnEmpty" class="tryon-empty">
-                <strong>Upload photos to create a realistic try-on</strong>
-                <span>Use your front/back/side photos and apparel images for the best result.</span>
+                <strong>Upload photos to create AI try-on views</strong>
+                <span>Front, back, left, right, and apparel photos produce the best 360 set.</span>
               </div>
               <div id="photoLayer" class="photo-layer"></div>
               <div id="avatar" class="avatar">
@@ -156,10 +157,10 @@
             </div>
             <div class="rotation-row">
               <input id="rotateSlider" type="range" min="0" max="360" value="0" />
-              <button id="generateTryOnButton" class="primary-button" type="button">Generate try-on</button>
+              <button id="generateTryOnButton" class="primary-button" type="button">Generate AI 360 views</button>
               <button id="saveLookButton" class="secondary-button" type="button">Save look</button>
             </div>
-            <div id="tryOnStatus" class="tryon-status">Local preview engine ready.</div>
+            <div id="tryOnStatus" class="tryon-status">AI try-on generates a photo for each uploaded body angle.</div>
             <div id="currentLookList" class="look-list"></div>
           </article>
 

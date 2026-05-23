@@ -27,6 +27,7 @@ const defaultState = {
   catalog: [],
   currentLook: [],
   savedLooks: [],
+  aiTryOnViews: {},
 };
 
 const mimeTypes = {
@@ -55,7 +56,9 @@ createServer(async (request, response) => {
 
     serveStatic(url.pathname, response);
   } catch (error) {
-    sendJson(response, 500, { error: "Server error", details: error.message });
+    sendJson(response, error.status || 500, {
+      error: error.message || "Server error",
+    });
   }
 }).listen(port, () => {
   console.log(`WardrobeLens running at http://127.0.0.1:${port}`);
@@ -63,7 +66,12 @@ createServer(async (request, response) => {
 
 async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/health") {
-    sendJson(response, 200, { ok: true, app: "WardrobeLens" });
+    sendJson(response, 200, {
+      ok: true,
+      app: "WardrobeLens",
+      aiTryOnConfigured: Boolean(process.env.OPENAI_API_KEY),
+      imageModel: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
+    });
     return;
   }
 
@@ -90,6 +98,13 @@ async function handleApi(request, response, url) {
     const body = await readJsonBody(request, 12 * 1024 * 1024);
     const upload = saveUpload(body);
     sendJson(response, 201, upload);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/try-on") {
+    const body = await readJsonBody(request);
+    const output = await createAiTryOn(String(body.view || "front"));
+    sendJson(response, 201, output);
     return;
   }
 
@@ -157,6 +172,7 @@ function sanitizeState(value) {
     catalog: Array.isArray(state.catalog) ? state.catalog : [],
     currentLook: Array.isArray(state.currentLook) ? state.currentLook : [],
     savedLooks: Array.isArray(state.savedLooks) ? state.savedLooks : [],
+    aiTryOnViews: typeof state.aiTryOnViews === "object" && state.aiTryOnViews ? state.aiTryOnViews : {},
   };
 }
 
@@ -213,7 +229,120 @@ function extensionFromMime(mimeType) {
   return known[mimeType] || "img";
 }
 
+async function createAiTryOn(view) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new HttpError(503, "Set OPENAI_API_KEY on the server to generate AI try-on photos.");
+  }
+
+  const validViews = new Set(["front", "back", "left", "right"]);
+  const selectedView = validViews.has(view) ? view : "front";
+  const state = readState();
+  const personPhoto = state.profile.photos[selectedView] || state.profile.photos.front;
+  if (!personPhoto) {
+    throw new HttpError(400, "Upload a profile photo before generating a try-on.");
+  }
+
+  if (!state.currentLook.length) {
+    throw new HttpError(400, "Select a look before generating a try-on.");
+  }
+
+  const references = [
+    { source: personPhoto, label: `person-${selectedView}` },
+    ...state.currentLook
+      .filter((item) => item.photo)
+      .map((item) => ({ source: item.photo, label: item.name || item.type || "apparel" })),
+  ];
+
+  const form = new FormData();
+  form.append("model", process.env.OPENAI_IMAGE_MODEL || "gpt-image-2");
+  form.append("size", "1024x1536");
+  form.append("quality", "medium");
+  form.append("prompt", buildTryOnPrompt(state, selectedView));
+
+  for (const [index, reference] of references.entries()) {
+    const asset = readAsset(reference.source, reference.label);
+    if (!asset) continue;
+    form.append("image[]", new Blob([asset.bytes], { type: asset.mimeType }), `${index}-${asset.name}`);
+  }
+
+  const apiResponse = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: form,
+  });
+
+  const result = await apiResponse.json();
+  if (!apiResponse.ok) {
+    throw new HttpError(apiResponse.status, result.error?.message || "Image generation failed.");
+  }
+
+  const imageBase64 = result.data?.[0]?.b64_json;
+  if (!imageBase64) {
+    throw new HttpError(502, "Image generation returned no output.");
+  }
+
+  const filename = `${Date.now()}-${randomUUID()}-try-on-${selectedView}.png`;
+  writeFileSync(join(uploadDir, filename), Buffer.from(imageBase64, "base64"));
+  const url = `/uploads/${filename}`;
+  state.aiTryOnViews[selectedView] = url;
+  writeState(state);
+  return { url, view: selectedView, model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2" };
+}
+
+function buildTryOnPrompt(state, view) {
+  const apparel = state.currentLook
+    .map((item) => `${item.name || item.type} (${item.type}, ${item.color || "original color"})`)
+    .join(", ");
+  return [
+    `Create a photorealistic full-body ${view} view fashion try-on image.`,
+    "The first reference image is the same adult person. Preserve their recognizable identity, face, body proportions, skin tone, hair, and pose as closely as possible.",
+    `Dress that person in this selected outfit: ${apparel}.`,
+    "Additional reference images, when supplied, are the actual clothing or accessories and should be faithfully preserved in color, texture, cut, and detailing.",
+    "Keep the result realistic and tasteful, fully clothed, with natural fabric draping and studio lighting on a clean neutral background.",
+    `The visible body orientation must match a ${view} camera view so it aligns with the other try-on angles.`,
+  ].join(" ");
+}
+
+function readAsset(source, label) {
+  const dataUrl = String(source || "");
+  const dataMatch = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (dataMatch) {
+    return {
+      bytes: Buffer.from(dataMatch[2], "base64"),
+      mimeType: dataMatch[1],
+      name: `${safeName(label)}.${extensionFromMime(dataMatch[1])}`,
+    };
+  }
+
+  if (dataUrl.startsWith("/uploads/")) {
+    const filename = basename(dataUrl);
+    const filePath = join(uploadDir, filename);
+    if (!existsSync(filePath)) return null;
+    return {
+      bytes: readFileSync(filePath),
+      mimeType: mimeTypes[extname(filename).toLowerCase()]?.split(";")[0] || "image/png",
+      name: filename,
+    };
+  }
+
+  return null;
+}
+
+function safeName(value) {
+  return String(value || "reference").replace(/[^\w.-]/g, "_");
+}
+
 function sendJson(response, status, payload) {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(payload));
+}
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
 }
